@@ -1,0 +1,7 @@
+help
+show logs
+show users
+show dbs
+use admin
+db.shutdownServer()
+show logs

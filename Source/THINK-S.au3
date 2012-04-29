@@ -1,11 +1,13 @@
-#region ;**** 参数创建于 ACNWrapper_GUI ****
+#Region ;**** 参数创建于 ACNWrapper_GUI ****
 #PRE_Icon=logo.ico
 #PRE_Outfile=../THINK-S.exe
 #PRE_Compression=4
+#PRE_UseUpx=n
 #PRE_Res_Comment=THINKPHP专用开发环境
-#PRE_Res_Fileversion=0.1
+#PRE_Res_Fileversion=0.1.0.0
 #PRE_Res_LegalCopyright=Thinkphp
-#endregion ;**** 参数创建于 ACNWrapper_GUI ****
+#PRE_Res_requestedExecutionLevel=None
+#EndRegion ;**** 参数创建于 ACNWrapper_GUI ****
 #region ACN预处理程序参数(常用参数)
 ;#PRE_Res_Field=AutoIt Version|%AutoItVer%		;自定义资源段
 ;#PRE_Run_Tidy=                   				;脚本整理

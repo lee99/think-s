@@ -1,4 +1,4 @@
-#Region ;**** 参数创建于 ACNWrapper_GUI ****
+#region ;**** 参数创建于 ACNWrapper_GUI ****
 #PRE_Icon=logo.ico
 #PRE_Outfile=../THINK-S.exe
 #PRE_Compression=4
@@ -7,7 +7,7 @@
 #PRE_Res_Fileversion=0.1.0.0
 #PRE_Res_LegalCopyright=Thinkphp
 #PRE_Res_requestedExecutionLevel=None
-#EndRegion ;**** 参数创建于 ACNWrapper_GUI ****
+#endregion ;**** 参数创建于 ACNWrapper_GUI ****
 #region ACN预处理程序参数(常用参数)
 ;#PRE_Res_Field=AutoIt Version|%AutoItVer%		;自定义资源段
 ;#PRE_Run_Tidy=                   				;脚本整理
@@ -28,10 +28,12 @@
 #ce ＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿脚本开始＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿
 
 #include <Misc.au3>
-_INI_CHECK();检查环境
+#include <array.au3>
+IniCheck();检查环境
 TrayTip("", "THINK-S[THINKPHP集成开发环境]", 3, 1)
-_RESET_CONF();重置配置环境
-_RUN_SERVER()
+Opt("TrayMenuMode", 3) ;不运行其它形式图标菜单
+_ResetConf();重置配置环境
+_RunServer()
 _TRAYMENU() ;设置托盘菜单
 
 
@@ -39,7 +41,7 @@ _TRAYMENU() ;设置托盘菜单
 Global $server_run, $server_restart, $server_stop
 
 Func _TRAYMENU()
-	Opt("TrayMenuMode", 3) ;不运行其它形式图标菜单
+	
 	Local $server_page = TrayCreateItem("打开网站首页...")
 	Local $server_root = TrayCreateItem("打开网站根目录...")
 	TrayCreateItem("") ;
@@ -52,13 +54,13 @@ Func _TRAYMENU()
 	Local $conf_mysql = TrayCreateItem("设置Mysql...", $iSettings)
 	Local $conf_php = TrayCreateItem("设置Php...", $iSettings)
 	Local $conf_mongo = TrayCreateItem("设置MongoDB...", $iSettings)
-	Local $conf_setup = TrayCreateItem("应用新的设置", $iSettings)
+	Local $ConfSetup = TrayCreateItem("应用新的设置", $iSettings)
 	Local $iUpdate = TrayCreateMenu("更新", $iMgr)
-	Local $svn_up_0 = TrayCreateItem("更新所有项目", $iUpdate)
-	Local $svn_up_1 = TrayCreateItem("更新[官方示例]", $iUpdate)
-	Local $svn_up_2 = TrayCreateItem("更新[THINKPHP]", $iUpdate)
-	Local $svn_up_3 = TrayCreateItem("更新[扩展库]", $iUpdate)
-	;Local $svn_up_4 = TrayCreateItem("更新[帮助文档]", $iUpdate)
+	Local $SvnUp0 = TrayCreateItem("更新所有项目", $iUpdate)
+	Local $SvnUp1 = TrayCreateItem("更新[官方示例]", $iUpdate)
+	Local $SvnUp2 = TrayCreateItem("更新[THINKPHP]", $iUpdate)
+	Local $SvnUp3 = TrayCreateItem("更新[扩展库]", $iUpdate)
+	;Local $SvnUp4 = TrayCreateItem("更新[帮助文档]", $iUpdate)
 	Local $iTool = TrayCreateMenu("辅助工具", $iMgr)
 	Local $tool_shortcut = TrayCreateItem("创建桌面快捷方式", $iTool)
 	Local $tool_startup = TrayCreateItem("开机运行THINK-S", $iTool)
@@ -84,7 +86,6 @@ Func _TRAYMENU()
 	Local $iExit = TrayCreateItem("退出THINK-S")
 
 
-
 	TraySetState(1) ; Show the tray menu.
 	While 1
 		Switch TrayGetMsg()
@@ -97,8 +98,8 @@ Func _TRAYMENU()
 			Case $conf_php
 				Run(@WindowsDir & "\Notepad.exe " & @ScriptDir & "\SERVER\conf_template\php.conf")
 				Run(@WindowsDir & "\Notepad.exe " & @ScriptDir & "\SERVER\conf_template\php.ini")
-			Case $conf_setup
-				_conf_setup()
+			Case $ConfSetup
+				_ConfSetup()
 			Case $server_page
 				ShellExecute('http://localhost:80/')
 			Case $iDb_mysql
@@ -121,45 +122,47 @@ Func _TRAYMENU()
 				FileCreateShortcut(@ScriptDir & "\" & @ScriptName, @DesktopDir & "\THINKPHP集成开发环境.lnk", @ScriptDir, "", "欢迎使用THINK-S!")
 			Case $tool_startup
 				FileCreateShortcut(@ScriptDir & "\" & @ScriptName, @StartupDir & "\THINKPHP集成开发环境.lnk", @ScriptDir, "", "欢迎使用THINK-S!")
-			Case $svn_up_0
-				_svn_up_0()
-			Case $svn_up_1
-				_svn_up_1();更新所有项目
-			Case $svn_up_2
-				_svn_up_2();更新[THINKPHP]
-			Case $svn_up_3
-				_svn_up_3();更新[扩展库]
+			Case $SvnUp0
+				_SvnUp0()
+			Case $SvnUp1
+				_SvnUp1();更新所有项目
+			Case $SvnUp2
+				_SvnUp2();更新[THINKPHP]
+			Case $SvnUp3
+				_SvnUp3();更新[扩展库]
 			Case $server_run
-				_RUN_SERVER()
+				_RunServer()
 			Case $iAbout
 				_about()
 			Case $server_restart
-				_RESTART_SERVER()
+				_RestartServer()
 			Case $server_stop
-				_STOP_SERVER()
+				_StopServer()
 			Case $iExit ; Exit the loop.
+				_StopServer()
 				Exit
 		EndSwitch
 	WEnd
 EndFunc   ;==>_TRAYMENU
 
-Func _conf_setup()
-	_STOP_SERVER()
-	TrayTip("", "正在应用新的配置！......", 3, 1)
+;;应用新的配置
+Func _ConfSetup()
+	_StopServer()
+	TrayTip("", "正在应用新的配置！……", 3, 1)
 	Sleep(1000)
-	_RESET_CONF()
-	TrayTip("", "正在重新启动THINK_S！......", 3, 1)
+	_ResetConf()
+	TrayTip("", "正在重新启动THINK_S！……", 3, 1)
 	Sleep(1000)
-	_RUN_SERVER()
-EndFunc   ;==>_conf_setup
+	_RunServer()
+EndFunc   ;==>_ConfSetup
 
-
-Func _RUN_SERVER()
+;;启动服务器
+Func _RunServer()
 	Global $server_run, $server_restart, $server_stop
-	TrayTip("", "正在启动THINK-S！......", 3, 1)
-	_run_httpd();apache
-	_run_mysql();mysql
-	_run_mongodb();mongodb
+	TrayTip("", "正在启动THINK-S！……", 3, 1)
+	_RunHttpd();apache
+	_RunMysql();mysql
+	_RunMongodb();mongodb
 	
 	TrayTip("", "THINK-S已启动！", 3, 1)
 	TrayItemSetText($server_run, '运行THINK-S[运行中]')
@@ -167,118 +170,147 @@ Func _RUN_SERVER()
 	TrayItemSetText($server_stop, '停止THINK-S')
 	TrayItemSetState($server_stop, 64)
 	TrayItemSetState($server_restart, 64)
-EndFunc   ;==>_RUN_SERVER
+EndFunc   ;==>_RunServer
 
-
-Func _STOP_SERVER()
+;;关闭服务器
+Func _StopServer()
 	Global $server_run, $server_restart, $server_stop
-	TrayTip("", "正在关闭THINK-S！......", 5, 1)
-	_stop_httpd();apache
-	_stop_mysql();mysql
-	_stop_mongodb();mongodb
+	TrayTip("", "正在关闭THINK-S！", 5, 1)
+	_StopHttpd();apache
+	_StopMysql();mysql
+	_StopMongodb();mongodb
 	TrayTip("", "THINK-S已经关闭！", 5, 1)
 	TrayItemSetText($server_stop, '停止THINK-S[已停止]')
 	TrayItemSetState($server_stop, 128)
 	TrayItemSetState($server_restart, 128)
 	TrayItemSetText($server_run, '运行THINK-S')
 	TrayItemSetState($server_run, 64)
-	
-EndFunc   ;==>_STOP_SERVER
+EndFunc   ;==>_StopServer
 
-Func _RESTART_SERVER()
-	_STOP_SERVER()
-	_RUN_SERVER()
-EndFunc   ;==>_RESTART_SERVER
 
-Func _write_file($in, $out)
-	Local $file_in = FileRead($in)
-	Local $file_out = FileOpen($out, 266)
+;;重启服务器
+Func _RestartServer()
+	_StopServer()
+	_RunServer()
+EndFunc   ;==>_RestartServer
 
-	; 检查打开的文件可写
-	If $file_out = -1 Then
-		MsgBox(4096, "错误", "不能打开配置文件.请检查是否程序被占用！")
+;;开启HTTPD
+Func _RunHttpd()
+	_StopHttpd()
+	If (_IsPortBusy(80, 5) = 1) Or (_IsPortBusy(10080, 5) = 1) Then
+		MsgBox(0, '提示', '貌似Apache的80或10080端口被占用了， ' & @CRLF & '迅雷、QQ下载、BT等下载软件会占用80端口，请检查后再试!程序自动退出。')
 		Exit
+	Else
+		Sleep(500)
+		TrayTip("", "正在启动APACHE……", 3, 1)
+		ShellExecute(@ScriptDir & "\SERVER\apache22\bin\httpd.exe", "-f " & @ScriptDir & "\SERVER\etc\httpd.conf", '', '', @SW_HIDE)
 	EndIf
-	Local $str = StringReplace($file_in, "[THINK_SERVER_PATH]", @ScriptDir & "\SERVER")
-	$str = StringReplace($str, "[THINK_WWW_PATH]", @ScriptDir & "\www")
-	$str = StringReplace($str, "[THINK_TP_PATH]", @ScriptDir & "\THINKPHP\Examples")
-	FileWrite($file_out, $str)
-	FileClose($file_out)
-	Sleep(500)
-	
-EndFunc   ;==>_write_file
+EndFunc   ;==>_RunHttpd
 
-Func _run_httpd()
-	_stop_httpd()
-	Sleep(500)
-	ShellExecute(@ScriptDir & "\SERVER\apache22\bin\httpd.exe", "-f " & @ScriptDir & "\SERVER\etc\httpd.conf", '', '', @SW_HIDE)
-EndFunc   ;==>_run_httpd
-
-Func _stop_httpd()
+;;停止HTTPD
+Func _StopHttpd()
 	Local $PID = ProcessList("httpd.exe")
 	For $i = 1 To $PID[0][0]
 		ProcessClose($PID[$i][1])
 	Next
-EndFunc   ;==>_stop_httpd
+EndFunc   ;==>_StopHttpd
 
-Func _run_mysql()
-	_stop_mysql()
-	Sleep(500)
-	ShellExecute(@ScriptDir & "\SERVER\mysql5\bin\mysqld-nt.exe", "--defaults-file=" & @ScriptDir & "\SERVER\etc\mysql.ini", '', '', @SW_HIDE)
-EndFunc   ;==>_run_mysql
+Func _RunMysql()
+	_StopMysql()
+	If _IsPortBusy(3306, 5) = 1 Then
+		MsgBox(0, '提示', '貌似MYSQL的3306端口被占用了，请检查后再试!程序自动退出。')
+		Exit
+	Else
+		Sleep(500)
+		TrayTip("", "正在启动MYSQL……", 3, 1)
+		ShellExecute(@ScriptDir & "\SERVER\mysql5\bin\mysqld-nt.exe", "--defaults-file=" & @ScriptDir & "\SERVER\etc\mysql.ini", '', '', @SW_HIDE)
+	EndIf
+EndFunc   ;==>_RunMysql
 
-Func _stop_mysql()
+Func _StopMysql()
 	Local $PID = ProcessList("mysqld-nt.exe")
 	For $i = 1 To $PID[0][0]
 		ProcessClose($PID[$i][1])
 	Next
-EndFunc   ;==>_stop_mysql
+EndFunc   ;==>_StopMysql
 
-Func _run_mongodb()
-	_stop_mongodb()
-	Sleep(500)
-	ShellExecute(@ScriptDir & "\SERVER\mongodb2\bin\mongod.exe", "--config " & @ScriptDir & "\SERVER\etc\mongodb.conf", '', '', @SW_HIDE)
-EndFunc   ;==>_run_mongodb
+Func _RunMongodb()
+	_StopMongodb()
+	If _IsPortBusy(27017, 5) = 1 Then
+		MsgBox(0, '提示', '貌似MongoDB的27017端口被占用了，请检查后再试!程序自动退出。')
+		Exit
+	Else
+		Sleep(500)
+		TrayTip("", "正在启动MongoDB……", 3, 1)
+		ShellExecute(@ScriptDir & "\SERVER\mongodb2\bin\mongod.exe", "--config " & @ScriptDir & "\SERVER\etc\mongodb.conf", '', '', @SW_HIDE)
+	EndIf
+EndFunc   ;==>_RunMongodb
 
-Func _stop_mongodb()
+Func _StopMongodb()
 	Local $PID = ProcessList("mongod.exe")
 	For $i = 1 To $PID[0][0]
 		ProcessClose($PID[$i][1])
 	Next
 	Sleep(1000)
-	If FileExists(@ScriptDir & "\SERVER\var\mongodb\mongod.lock") Then FileDelete(@ScriptDir & "\SERVER\var\mongodb\mongod.lock")
-EndFunc   ;==>_stop_mongodb
+	If FileExists(@ScriptDir & "\DATA\mongodb\mongod.lock") Then FileDelete(@ScriptDir & "\DATA\mongodb\mongod.lock")
+EndFunc   ;==>_StopMongodb
 
-Func _RESET_CONF()
-	_write_file(@ScriptDir & "\SERVER\conf_template\php.conf", @ScriptDir & "\SERVER\etc\php.conf")
-	_write_file(@ScriptDir & "\SERVER\conf_template\php.ini", @ScriptDir & "\SERVER\etc\php.ini")
-	_write_file(@ScriptDir & "\SERVER\conf_template\mysql.ini", @ScriptDir & "\SERVER\etc\mysql.ini")
-	_write_file(@ScriptDir & "\SERVER\conf_template\httpd.conf", @ScriptDir & "\SERVER\etc\httpd.conf")
-	_write_file(@ScriptDir & "\SERVER\conf_template\mongodb.conf", @ScriptDir & "\SERVER\etc\mongodb.conf")
-EndFunc   ;==>_RESET_CONF
+;;重置配置文件
+Func _ResetConf()
+	If FileExists(@ScriptDir & "\SERVER\etc") Then
+		WriteFile(@ScriptDir & "\SERVER\conf_template\php.conf", @ScriptDir & "\SERVER\etc\php.conf")
+		WriteFile(@ScriptDir & "\SERVER\conf_template\php.ini", @ScriptDir & "\SERVER\etc\php.ini")
+		WriteFile(@ScriptDir & "\SERVER\conf_template\mysql.ini", @ScriptDir & "\SERVER\etc\mysql.ini")
+		WriteFile(@ScriptDir & "\SERVER\conf_template\httpd.conf", @ScriptDir & "\SERVER\etc\httpd.conf")
+		WriteFile(@ScriptDir & "\SERVER\conf_template\mongodb.conf", @ScriptDir & "\SERVER\etc\mongodb.conf")
+	Else
+		MsgBox(0, '提示', @ScriptDir & "\SERVER\etc\目录不存在！" & @CRLF & '请检查后再试!')
+	EndIf
+EndFunc   ;==>_ResetConf
 
-Func _svn_up_1()
-	_svn_up("Examples")
-EndFunc   ;==>_svn_up_1
+Func _SvnUp1()
+	SvnUp("Examples")
+EndFunc   ;==>_SvnUp1
 
-Func _svn_up_2()
-	_svn_up("ThinkPHP")
-EndFunc   ;==>_svn_up_2
+Func _SvnUp2()
+	SvnUp("ThinkPHP")
+EndFunc   ;==>_SvnUp2
 
-Func _svn_up_3()
-	_svn_up("Extend")
-EndFunc   ;==>_svn_up_3
-Func _svn_up_4()
-	_svn_up("Extend")
-EndFunc   ;==>_svn_up_4
+Func _SvnUp3()
+	SvnUp("Extend")
+EndFunc   ;==>_SvnUp3
 
-Func _svn_up_0()
-	_svn_up_1()
-	_svn_up_2()
-	_svn_up_3()
-EndFunc   ;==>_svn_up_0
+Func _SvnUp4()
+	SvnUp("Extend")
+EndFunc   ;==>_SvnUp4
 
-Func _svn_up($target)
+
+Func _SvnUp0()
+	_SvnUp1()
+	_SvnUp2()
+	_SvnUp3()
+EndFunc   ;==>_SvnUp0
+
+
+;;初始化时间检查
+Func IniCheck()
+	If _Singleton(@ScriptName, 1) = 0 Then
+		MsgBox(4096, "错误", "只能同时运行一个THINK-S程序！" & @CRLF & "程序自动退出。")
+		Exit
+	EndIf
+	If (_Regexp(@ScriptDir, 0) <> @ScriptDir) Then
+		MsgBox(4096, "错误", "貌似程序的运行路径包含有双字节的字符，可能会让某部分组件运行不正常！" & @CRLF & "程序自动退出。")
+		Exit
+	EndIf
+EndFunc   ;==>IniCheck
+
+;;关于
+Func _about()
+	MsgBox(32 + 4096 + 262144, "关于本程序", "【缘起】" & @CRLF & @CRLF & "本程序是本人在想用THINKPHP3开发一小项目时，旧的环境不适合，也有一些新人还不懂怎样搭开发环境，所以有了做一个小小的环境的想法，无论老手新手都能用比较简单的方法快速搭起一个开发环境。" & @CRLF & @CRLF & "【感谢】" & @CRLF & @CRLF & "本程序借鉴了很多很优秀的集成开发环境：" & @CRLF & @CRLF & "Xampp：www.apachefriends.org" & @CRLF & "Apmxe：www.dualface.com" & @CRLF & "EasyPHP：www.easyphp.org" & @CRLF & @CRLF & "…………" & @CRLF & @CRLF & "本程序没有版权，如果你觉得还不错，请感谢以上软件的作者。当然，我要感谢THINKPHP!" & @CRLF & @CRLF & "【联系】" & @CRLF & @CRLF & "如果程序有问题请联系我：lee99.com[at]gmail.com" & @CRLF & @CRLF & "【注意】" & @CRLF & @CRLF & "本软件只适合于开发环境，不适合于生产环境！切记！")
+EndFunc   ;==>_about
+
+;;以SVN更新
+Func SvnUp($target)
 	;Local $target="Examples"
 	Local $base_dir = @ScriptDir & "\THINKPHP";
 	Local $target_dir = $base_dir & "\" & $target & "";
@@ -289,24 +321,93 @@ Func _svn_up($target)
 		Send('cd{SPACE}' & $target_dir & '{ENTER}')
 		Send(@ScriptDir & "\SERVER\SVN\svn.exe {SPACE} update{ENTER};exit{ENTER}")
 		;Send('exit{ENTER}')
+		MsgBox(4096, "提示", "更新操作已经完成！程序自动退出。")
 	Else
 		Run("cmd.exe /k title SVN 更新中... ")
 		Local $hWnd = WinWait("[CLASS:ConsoleWindowClass]", "", 0)
 		Send('cd{SPACE}' & $base_dir & '{ENTER}')
 		Send(@ScriptDir & "\SERVER\SVN\svn.exe {SPACE} checkout {SPACE} https://thinkphp.googlecode.com/svn/trunk/" & $target & "/{ENTER};exit{ENTER}")
 		;Send('exit{ENTER}')
+		MsgBox(4096, "提示", "更新操作已经完成！程序自动退出。")
 	EndIf
-	
 	;EndIf
-EndFunc   ;==>_svn_up
+EndFunc   ;==>SvnUp
 
-Func _INI_CHECK()
-	If _Singleton(@ScriptName, 1) = 0 Then
-		MsgBox(4096, "错误", "只能同时运行一个THINK-S程序！程序自动退出。")
+;;格式化路径
+Func FormatPath($str)
+	$str = StringReplace($str, "\", "\\")
+	Return $str
+EndFunc   ;==>FormatPath
+
+;;写入文件的函数
+Func WriteFile($in, $out)
+	Local $file_in = FileRead($in)
+	Local $file_out = FileOpen($out, 266)
+	; 检查打开的文件可写
+	If $file_out = -1 Then
+		MsgBox(4096, "错误", "不能打开配置文件.请检查是否程序被占用！")
 		Exit
 	EndIf
-EndFunc   ;==>_INI_CHECK
+	Local $str = StringReplace($file_in, "[THINK_SERVER_PATH]", FormatPath(@ScriptDir & "\SERVER"))
+	$str = StringReplace($str, "[THINK_WWW_PATH]", FormatPath(@ScriptDir & "\www"))
+	$str = StringReplace($str, "[THINK_TP_PATH]", FormatPath(@ScriptDir & "\THINKPHP\Examples"))
+	$str = StringReplace($str, "[THINK_DATA_PATH]", FormatPath(@ScriptDir & "\DATA"))
+	FileWrite($file_out, $str)
+	FileClose($file_out)
+	Sleep(500)
+EndFunc   ;==>WriteFile
 
-Func _about()
-	MsgBox(32 + 4096 + 262144, "关于本程序", "【缘起】" & @CRLF & @CRLF & "本程序是本人在想用THINKPHP3开发一小项目时，旧的环境不适合，也有一些新人还不懂怎样搭开发环境，所以有了做一个小小的环境的想法，无论老手新手都能用比较简单的方法快速搭起一个开发环境。" & @CRLF & @CRLF & "【感谢】" & @CRLF & @CRLF & "本程序借鉴了很多很优秀的集成开发环境：" & @CRLF & @CRLF & "Xampp：www.apachefriends.org" & @CRLF & "Apmxe：www.dualface.com" & @CRLF & "EasyPHP：www.easyphp.org" & @CRLF & @CRLF & "…………" & @CRLF & @CRLF & "本程序没有版权，如果你觉得还不错，请感谢以上软件的作者。当然，我要感谢THINKPHP!" & @CRLF & @CRLF & "【联系】" & @CRLF & @CRLF & "如果程序有问题请联系我：lee99.com[at]gmail.com" & @CRLF & @CRLF & "【注意】" & @CRLF & @CRLF & "本软件只适合于开发环境，不适合于生产环境！切记！")
-EndFunc   ;==>_about
+;;判断字符，返回你的过滤条件
+Func _Regexp($input, $flag = 1);flag,0='单字节字符',1='简体中文',2='其它双字节字符'
+	Local $single, $due, $other
+	If StringRegExp($input, '[^\x00-\xff]+', 0) Then
+		$temp = StringSplit($input, '')
+		For $i = 1 To $temp[0]
+			If BinaryLen(StringToBinary($temp[$i])) = 2 Then
+				$high = BinaryMid(StringToBinary($temp[$i]), 1, 1)
+				$low = BinaryMid(StringToBinary($temp[$i]), 2, 1)
+				If $high >= 0xb0 And $high <= 0xf7 And $low >= 0xa1 And $low <= 0xfe Then
+					$due &= $temp[$i]
+				Else
+					$other &= $temp[$i]
+				EndIf
+			ElseIf BinaryLen(StringToBinary($temp[$i])) = 1 Then
+				$single &= $temp[$i]
+			EndIf
+		Next
+		Select
+			Case $flag = 0
+				Return $single
+			Case $flag = 1
+				Return $due
+			Case $flag = 2
+				Return $other
+		EndSelect
+	EndIf
+EndFunc   ;==>_Regexp
+
+
+;$Port：端口号；$ProtoMode=协议类型，IP,IPv6,ICMP,ICMPv6,TCP,TCPv6,UDP,UDPv6分别对应整数1-6
+Func _IsPortBusy($Port, $ProtoMode = 5)
+	$Port = Number($Port)
+	$ProtoMode = Number($ProtoMode)
+	If ($ProtoMode < 1) Or ($ProtoMode > 8) Then MsgBox(0, 0, "错误的网络类型!")
+	$ProtoModeCollection = StringSplit("IP,IPv6,ICMP,ICMPv6,TCP,TCPv6,UDP,UDPv6", ",")
+
+	Local $foo = Run(@ComSpec & " /c netstat -an -p " & $ProtoModeCollection[$ProtoMode], @SystemDir, @SW_HIDE, 4 + 2);增加o参数会显示占用的进程pid
+	Local $line
+	While 1
+		$line = StdoutRead($foo)
+		If @error Then
+			Return -1
+			ExitLoop
+		EndIf
+		If StringLen(StringReplace($line, " ", "")) > 0 Then
+			If StringInStr($line, ":" & $Port & " ", 0) > 0 Then
+				Return 1
+			Else
+				Return 0
+			EndIf
+		EndIf
+	WEnd
+EndFunc   ;==>_IsPortBusy

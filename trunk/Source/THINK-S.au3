@@ -30,7 +30,7 @@
 #include <Misc.au3>
 #include <array.au3>
 IniCheck();检查环境
-TrayTip("", "THINK-S[THINKPHP集成开发环境]", 3, 1)
+TrayTip("", "THINK-S[THINKPHP专用开发环境]", 3, 1)
 Opt("TrayMenuMode", 3) ;不运行其它形式图标菜单
 _ResetConf();重置配置环境
 _RunServer()
@@ -39,7 +39,6 @@ _TRAYMENU() ;设置托盘菜单
 
 
 Global $server_run, $server_restart, $server_stop
-
 Func _TRAYMENU()
 	
 	Local $server_page = TrayCreateItem("打开网站首页...")
@@ -119,9 +118,9 @@ Func _TRAYMENU()
 			Case $server_root
 				Run("explorer.exe " & @ScriptDir & "\www\")
 			Case $tool_shortcut
-				FileCreateShortcut(@ScriptDir & "\" & @ScriptName, @DesktopDir & "\THINKPHP集成开发环境.lnk", @ScriptDir, "", "欢迎使用THINK-S!")
+				FileCreateShortcut(@ScriptDir & "\" & @ScriptName, @DesktopDir & "\THINKPHP专用开发环境.lnk", @ScriptDir, "", "欢迎使用THINK-S!")
 			Case $tool_startup
-				FileCreateShortcut(@ScriptDir & "\" & @ScriptName, @StartupDir & "\THINKPHP集成开发环境.lnk", @ScriptDir, "", "欢迎使用THINK-S!")
+				FileCreateShortcut(@ScriptDir & "\" & @ScriptName, @StartupDir & "\THINKPHP专用开发环境.lnk", @ScriptDir, "", "欢迎使用THINK-S!")
 			Case $SvnUp0
 				_SvnUp0()
 			Case $SvnUp1
@@ -148,18 +147,18 @@ EndFunc   ;==>_TRAYMENU
 ;;应用新的配置
 Func _ConfSetup()
 	_StopServer()
-	TrayTip("", "正在应用新的配置！……", 3, 1)
-	Sleep(1000)
+	TrayTip("", "正在应用新的配置……", 3, 1)
+	Sleep(500)
 	_ResetConf()
-	TrayTip("", "正在重新启动THINK_S！……", 3, 1)
-	Sleep(1000)
+	TrayTip("", "正在重新启动THINK_S……", 3, 1)
+	Sleep(500)
 	_RunServer()
 EndFunc   ;==>_ConfSetup
 
 ;;启动服务器
 Func _RunServer()
 	Global $server_run, $server_restart, $server_stop
-	TrayTip("", "正在启动THINK-S！……", 3, 1)
+	TrayTip("", "正在启动THINK-S……", 3, 1)
 	_RunHttpd();apache
 	_RunMysql();mysql
 	_RunMongodb();mongodb
@@ -197,28 +196,40 @@ EndFunc   ;==>_RestartServer
 ;;开启HTTPD
 Func _RunHttpd()
 	_StopHttpd()
-	If (_IsPortBusy(80, 5) = 1) Or (_IsPortBusy(10080, 5) = 1) Then
-		MsgBox(0, '提示', '貌似Apache的80或10080端口被占用了， ' & @CRLF & '迅雷、QQ下载、BT等下载软件会占用80端口，请检查后再试!程序自动退出。')
-		Exit
-	Else
-		Sleep(500)
-		TrayTip("", "正在启动APACHE……", 3, 1)
-		ShellExecute(@ScriptDir & "\SERVER\apache22\bin\httpd.exe", "-f " & @ScriptDir & "\SERVER\etc\httpd.conf", '', '', @SW_HIDE)
+	Sleep(500)
+	
+	;第一次，先关闭相关的进程
+	If (_IsPortBusy(80, 5) == 1) Then
+		_killPortProcess(80)
 	EndIf
+	If (_IsPortBusy(10080, 5) == 1) Then
+		_killPortProcess(10080)
+	EndIf
+	
+	Local $i = 0
+	TrayTip("", "正在启动APACHE……", 3, 1)
+	While ProcessExists("httpd.exe") == 0
+		ShellExecute(@ScriptDir & "\SERVER\apache22\bin\httpd.exe", "-f " & @ScriptDir & "\SERVER\etc\httpd.conf", '', '', @SW_HIDE)
+		Sleep(250)
+		$i = $i + 1
+		If $i = 10 Then;尝试10次
+			If (_IsPortBusy(80, 5) == 1) Then
+				MsgBox(0, '提示', '貌似Apache的80端口被占用了， ' & @CRLF & '迅雷、QQ下载、BT、360升级助手等软件会占用80端口，请检查后再试!Think-S自动退出。')
+				Exit
+			EndIf
+		EndIf
+	WEnd
 EndFunc   ;==>_RunHttpd
 
 ;;停止HTTPD
 Func _StopHttpd()
-	Local $PID = ProcessList("httpd.exe")
-	For $i = 1 To $PID[0][0]
-		ProcessClose($PID[$i][1])
-	Next
+	_KillProcess("httpd.exe")
 EndFunc   ;==>_StopHttpd
 
 Func _RunMysql()
 	_StopMysql()
-	If _IsPortBusy(3306, 5) = 1 Then
-		MsgBox(0, '提示', '貌似MYSQL的3306端口被占用了，请检查后再试!程序自动退出。')
+	If _IsPortBusy(3306, 5) == 1 Then
+		MsgBox(0, '提示', '貌似MYSQL的3306端口被占用了，请检查后再试!Think-S自动退出。')
 		Exit
 	Else
 		Sleep(500)
@@ -228,16 +239,16 @@ Func _RunMysql()
 EndFunc   ;==>_RunMysql
 
 Func _StopMysql()
-	Local $PID = ProcessList("mysqld-nt.exe")
-	For $i = 1 To $PID[0][0]
-		ProcessClose($PID[$i][1])
-	Next
+	_KillProcess("mysqld-nt.exe")
 EndFunc   ;==>_StopMysql
 
 Func _RunMongodb()
 	_StopMongodb()
-	If _IsPortBusy(27017, 5) = 1 Then
-		MsgBox(0, '提示', '貌似MongoDB的27017端口被占用了，请检查后再试!程序自动退出。')
+	If (_IsPortBusy(27017, 5) == 1) Then
+		MsgBox(0, '提示', '貌似MongoDB的27017端口被占用了，请检查后再试!Think-S自动退出。')
+		Exit
+	ElseIf (_IsPortBusy(28017, 5) == 1) Then
+		MsgBox(0, '提示', '貌似MongoDB的28017口被占用了，请检查后再试!Think-S自动退出。')
 		Exit
 	Else
 		Sleep(500)
@@ -247,10 +258,7 @@ Func _RunMongodb()
 EndFunc   ;==>_RunMongodb
 
 Func _StopMongodb()
-	Local $PID = ProcessList("mongod.exe")
-	For $i = 1 To $PID[0][0]
-		ProcessClose($PID[$i][1])
-	Next
+	_KillProcess("mongod.exe")
 	Sleep(1000)
 	If FileExists(@ScriptDir & "\DATA\mongodb\mongod.lock") Then FileDelete(@ScriptDir & "\DATA\mongodb\mongod.lock")
 EndFunc   ;==>_StopMongodb
@@ -295,18 +303,18 @@ EndFunc   ;==>_SvnUp0
 ;;初始化时间检查
 Func IniCheck()
 	If _Singleton(@ScriptName, 1) = 0 Then
-		MsgBox(4096, "错误", "只能同时运行一个THINK-S程序！" & @CRLF & "程序自动退出。")
+		MsgBox(4096, "错误", "只能同时运行一个THINK-S程序！" & @CRLF & "Think-S自动退出。")
 		Exit
 	EndIf
 	If (_Regexp(@ScriptDir, 0) <> @ScriptDir) Then
-		MsgBox(4096, "错误", "貌似程序的运行路径包含有双字节的字符，可能会让某部分组件运行不正常！" & @CRLF & "程序自动退出。")
+		MsgBox(4096, "错误", "貌似程序的运行路径包含有双字节的字符，可能会让某部分组件运行不正常！" & @CRLF & "Think-S自动退出。")
 		Exit
 	EndIf
 EndFunc   ;==>IniCheck
 
 ;;关于
 Func _about()
-	MsgBox(32 + 4096 + 262144, "关于本程序", "【缘起】" & @CRLF & @CRLF & "本程序是本人在想用THINKPHP3开发一小项目时，旧的环境不适合，也有一些新人还不懂怎样搭开发环境，所以有了做一个小小的环境的想法，无论老手新手都能用比较简单的方法快速搭起一个开发环境。" & @CRLF & @CRLF & "【感谢】" & @CRLF & @CRLF & "本程序借鉴了很多很优秀的集成开发环境：" & @CRLF & @CRLF & "Xampp：www.apachefriends.org" & @CRLF & "Apmxe：www.dualface.com" & @CRLF & "EasyPHP：www.easyphp.org" & @CRLF & @CRLF & "…………" & @CRLF & @CRLF & "本程序没有版权，如果你觉得还不错，请感谢以上软件的作者。当然，我要感谢THINKPHP!" & @CRLF & @CRLF & "【联系】" & @CRLF & @CRLF & "如果程序有问题请联系我：lee99.com[at]gmail.com" & @CRLF & @CRLF & "【注意】" & @CRLF & @CRLF & "本软件只适合于开发环境，不适合于生产环境！切记！")
+	MsgBox(32 + 4096 + 262144, "关于本程序", "【缘起】" & @CRLF & @CRLF & "本程序是本人在想用THINKPHP3开发一小项目时，旧的环境不适合，也有一些新人还不懂怎样搭开发环境，所以有了做一个小小的环境的想法，无论老手新手都能用比较简单的方法快速搭起一个开发环境。" & @CRLF & @CRLF & "【感谢】" & @CRLF & @CRLF & "本程序借鉴了很多很优秀的专用开发环境：" & @CRLF & @CRLF & "Xampp：www.apachefriends.org" & @CRLF & "Apmxe：www.dualface.com" & @CRLF & "EasyPHP：www.easyphp.org" & @CRLF & @CRLF & "…………" & @CRLF & @CRLF & "本程序没有版权，如果你觉得还不错，请感谢以上软件的作者。当然，我要感谢THINKPHP!" & @CRLF & @CRLF & "【联系】" & @CRLF & @CRLF & "如果程序有问题请联系我：lee99.com[at]gmail.com" & @CRLF & @CRLF & "【注意】" & @CRLF & @CRLF & "本软件只适合于开发环境，不适合于生产环境！切记！")
 EndFunc   ;==>_about
 
 ;;以SVN更新
@@ -321,14 +329,14 @@ Func SvnUp($target)
 		Send('cd{SPACE}' & $target_dir & '{ENTER}')
 		Send(@ScriptDir & "\SERVER\SVN\svn.exe {SPACE} update{ENTER};exit{ENTER}")
 		;Send('exit{ENTER}')
-		MsgBox(4096, "提示", "更新操作已经完成！程序自动退出。")
+		MsgBox(4096, "提示", "更新操作已经完成！Think-S自动退出。")
 	Else
 		Run("cmd.exe /k title SVN 更新中... ")
 		Local $hWnd = WinWait("[CLASS:ConsoleWindowClass]", "", 0)
 		Send('cd{SPACE}' & $base_dir & '{ENTER}')
 		Send(@ScriptDir & "\SERVER\SVN\svn.exe {SPACE} checkout {SPACE} https://thinkphp.googlecode.com/svn/trunk/" & $target & "/{ENTER};exit{ENTER}")
 		;Send('exit{ENTER}')
-		MsgBox(4096, "提示", "更新操作已经完成！程序自动退出。")
+		MsgBox(4096, "提示", "更新操作已经完成！Think-S自动退出。")
 	EndIf
 	;EndIf
 EndFunc   ;==>SvnUp
@@ -411,3 +419,66 @@ Func _IsPortBusy($Port, $ProtoMode = 5)
 		EndIf
 	WEnd
 EndFunc   ;==>_IsPortBusy
+
+;;杀某一个进程
+Func _KillProcess($Process)
+	Local $PID = ProcessList($Process)
+	For $i = 1 To $PID[0][0]
+		ProcessClose($PID[$i][1])
+	Next
+EndFunc   ;==>_KillProcess
+
+
+Func _killPortProcess($Port)
+	#comments-start
+		Local $foo = Run(@ComSpec & ' /c Netstat -ano|findstr /C:"0.0.0.0:"' & $Port, @SystemDir, @SW_HIDE, 4 + 2)
+		Local $line
+		While 1
+		$line = StdoutRead($foo)
+		If @error Then
+		Return -1
+		ExitLoop
+		EndIf
+		If StringLen($line) > 0 Then
+		$ls = StringSplit($line, 'LISTENING', 1)
+		Run(@ComSpec & ' /c TASKKILL /PID ' & Int($ls[2]), @SystemDir, @SW_HIDE, 4 + 2);
+		EndIf
+		WEnd
+	#comments-end
+	Local $foo = Run(@ComSpec & ' /c netstat -p TCP -aonvb', @SystemDir, @SW_HIDE, 4 + 2)
+	Local $line
+	While 1
+		$line = StdoutRead($foo)
+		If @error Then
+			Return -1
+			ExitLoop
+		EndIf
+		If StringLen($line) > 0 Then
+			Local $ls_a, $ls_b, $ls_c
+			
+			;用了笨方法,正则老不灵光
+			If (StringInStr($line, '0.0.0.0:' & $Port) <> 0) Then
+				$ls_a = StringSplit($line, '0.0.0.0:' & $Port, 1)
+				If (StringInStr($ls_a[2], ']') <> 0) Then
+					$ls_b = StringSplit($ls_a[2], ']', 1)
+					If (StringInStr($ls_b[1], '[') <> 0) Then
+						$ls_c = StringSplit($ls_b[1], '[', 1)
+						If IsArray($ls_c) Then
+							_KillProcess($ls_c[2])
+						EndIf
+					EndIf
+				EndIf
+			EndIf
+
+			#cs
+				If (StringInStr($line, '0.0.0.0:' & $Port)) Then
+				$ls_a = StringSplit($line, '0.0.0.0:' & $Port, 1)
+				$array = StringRegExp($line, '\[(.*?)\]', 3)
+				If IsArray($ls_c) Then
+				_KillProcess($ls_c[2])
+				EndIf
+				EndIf
+			#ce
+		EndIf
+	WEnd
+EndFunc   ;==>_killPortProcess

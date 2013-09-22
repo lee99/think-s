@@ -9,7 +9,7 @@
 /**
 * Defining version number and enabling error reporting
 */
-define("ROCK_MONGO_VERSION", "1.1.0");
+define("ROCK_MONGO_VERSION", "1.1.5");
 
 error_reporting(E_ALL);
 
@@ -19,9 +19,13 @@ error_reporting(E_ALL);
 if (!version_compare(PHP_VERSION, "5.0")) {
 	exit("To make things right, you must install PHP5");
 }
-if (!class_exists("Mongo")) {
+if (!class_exists("Mongo") && !class_exists("MongoClient")) {
 	exit("To make things right, you must install php_mongo module. <a href=\"http://www.php.net/manual/en/mongo.installation.php\" target=\"_blank\">Here for installation documents on PHP.net.</a>");
 }
+
+// enforce Mongo support for int64 data type (Kyryl Bilokurov <kyryl.bilokurov@gmail.com>)
+ini_set("mongo.native_long", 1);
+ini_set("mongo.long_as_object", 1);
 
 /**
 * Initializing configuration files and RockMongo

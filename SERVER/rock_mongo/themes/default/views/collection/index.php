@@ -1,3 +1,4 @@
+<!-- Global configuration -->
 <script language="javascript">
 var explainURL = "<?php h(url("collection.explainQuery"));?>";
 var currentURL = "<?php h($_SERVER["REQUEST_URI"]); ?>";
@@ -10,6 +11,8 @@ var currentFields = new Array();
 currentFields.push("<?php h(addslashes($field));?>");
 <?php endforeach;?>
 </script>
+
+<!-- Import resources -->
 <script language="javascript" src="js/collection.js?v=<?php h(filemtime("js/collection.js")) ?>"></script>
 <script language="javascript" src="js/jquery-ui-1.8.4.custom.min.js"></script>
 <link rel="stylesheet" href="<?php render_theme_path() ?>/css/collection.css" media="all"/>
@@ -25,10 +28,10 @@ currentFields.push("<?php h(addslashes($field));?>");
 
 <div class="query">
 <form method="get" id="query_form">
-<input type="hidden" name="db" value="<?php h($db);?>"/>
-<input type="hidden" name="collection" value="<?php h($collection);?>"/>
-<input type="hidden" name="action" value="<?php h(x("action"));?>"/>
-<input type="hidden" name="format" value="<?php h(x("format")); ?>"/>
+<input type="hidden" name="db" value="<?php h_escape($db);?>"/>
+<input type="hidden" name="collection" value="<?php h_escape($collection);?>"/>
+<input type="hidden" name="action" value="<?php h_escape(x("action"));?>"/>
+<input type="hidden" name="format" value="<?php h_escape(x("format")); ?>"/>
 <table>
 	<tr>
 		<td valign="top">
@@ -41,9 +44,9 @@ currentFields.push("<?php h(addslashes($field));?>");
 		<td valign="top" class="field_orders">
 			<!-- fields will be used in sorting -->
 			<p><input type="text" name="field[]" value="<?php h(rock_array_get(x("field"),0));?>" /> <select name="order[]"><option value="asc" <?php if (rock_array_get(x("order"),0)=="asc"):?>selected="selected"<?php endif;?>>ASC</option><option value="desc" <?php if (rock_array_get(x("order"),0)=="desc"):?>selected="selected"<?php endif;?>>DESC</option></select></p>
-			<p><input type="text" name="field[]" value="<?php h(rock_array_get(x("field"),1));?>" /> <select name="order[]"><option value="asc" <?php if (rock_array_get(x("order"),1)=="asc"):?>selected="selected"<?php endif;?>>ASC</option><option value="desc" <?php if (rock_array_get(x("order"),1)=="desc"):?>selected="selected"<?php endif;?>>DESC</option></select></p>
-			<p><input type="text" name="field[]" value="<?php h(rock_array_get(x("field"),2));?>" /> <select name="order[]"><option value="asc" <?php if (rock_array_get(x("order"),2)=="asc"):?>selected="selected"<?php endif;?>>ASC</option><option value="desc" <?php if (rock_array_get(x("order"),2)=="desc"):?>selected="selected"<?php endif;?>>DESC</option></select></p>
-			<p><input type="text" name="field[]" value="<?php h(rock_array_get(x("field"),3));?>" /> <select name="order[]"><option value="asc" <?php if (rock_array_get(x("order"),3)=="asc"):?>selected="selected"<?php endif;?>>ASC</option><option value="desc" <?php if (rock_array_get(x("order"),3)=="desc"):?>selected="selected"<?php endif;?>>DESC</option></select> </p>
+			<p><input type="text" name="field[]" value="<?php h_escape(rock_array_get(x("field"),1));?>" /> <select name="order[]"><option value="asc" <?php if (rock_array_get(x("order"),1)=="asc"):?>selected="selected"<?php endif;?>>ASC</option><option value="desc" <?php if (rock_array_get(x("order"),1)=="desc"):?>selected="selected"<?php endif;?>>DESC</option></select></p>
+			<p><input type="text" name="field[]" value="<?php h_escape(rock_array_get(x("field"),2));?>" /> <select name="order[]"><option value="asc" <?php if (rock_array_get(x("order"),2)=="asc"):?>selected="selected"<?php endif;?>>ASC</option><option value="desc" <?php if (rock_array_get(x("order"),2)=="desc"):?>selected="selected"<?php endif;?>>DESC</option></select></p>
+			<p><input type="text" name="field[]" value="<?php h_escape(rock_array_get(x("field"),3));?>" /> <select name="order[]"><option value="asc" <?php if (rock_array_get(x("order"),3)=="asc"):?>selected="selected"<?php endif;?>>ASC</option><option value="desc" <?php if (rock_array_get(x("order"),3)=="desc"):?>selected="selected"<?php endif;?>>DESC</option></select> </p>
 		</td>
 	</tr>
 	<tr>
@@ -105,6 +108,7 @@ currentFields.push("<?php h(addslashes($field));?>");
 </form>
 </div>
 
+<!-- Records in collection -->
 <div id="records">
 	<?php if(!isset($page) || $page->total() == 0):?>
 		<?php if (x("command") != "findAll"):?>
@@ -175,12 +179,21 @@ currentFields.push("<?php h(addslashes($field));?>");
 							"id" => rock_id_string($row["_id"]),
 						)));
 						?>">Download</a> <a href="<?php
+						$criteria = null;
+						if ($this->last_format == "json") {
+							$criteria = '{
+	"files_id": ' . (($row["_id"] instanceof MongoId) ? "ObjectId(\"" . addslashes($row["_id"]->__toString()) . "\")" : "\"" . addslashes($row["_id"]) . "\"") . '
+}';
+						}
+						else {
+							$criteria = 'array(
+	"files_id" => ' . (($row["_id"] instanceof MongoId) ? "new MongoId(\"" . addslashes($row["_id"]->__toString()) . "\")" : "\"" . addslashes($row["_id"]) . "\"") . '
+)';
+						}
 						h(url("collection.index", array(
 							"db" => $db,
 							"collection" => MCollection::chunksCollection($collection),
-							"criteria" => 'array(
-	"files_id" => ' . (($row["_id"] instanceof MongoId) ? "new MongoId(\"" . addslashes($row["_id"]->__toString()) . "\")" : "\"" . addslashes($row["_id"]) . "\"") . '
-)')));
+							"criteria" => $criteria)));
 						?>">Chunks</a>
 						<?php endif;?>
 					</div>	
@@ -275,6 +288,14 @@ Are you sure to set field "<span class="dialog_field"></span>" to NULL?
 		<td valign="top">Value:</td>
 		<td><select name="bool_value"><option value="true">True</option><option value="false">False</option></select></td>
 	</tr>
+	<tr class="integer_value">
+		<td valign="top">Value:</td>
+		<td><input type="text" name="integer_value"/></td>
+	</tr>
+	<tr class="long_value">
+		<td valign="top">Value:</td>
+		<td><input type="text" name="long_value"/></td>
+	</tr>	
 	<tr class="double_value">
 		<td valign="top">Value:</td>
 		<td><input type="text" name="double_value"/></td>
@@ -312,6 +333,14 @@ Are you sure to set field "<span class="dialog_field"></span>" to NULL?
 		<td valign="top">Value:</td>
 		<td><select name="bool_value"><option value="true">True</option><option value="false">False</option></select></td>
 	</tr>
+	<tr class="integer_value">
+		<td valign="top">Value:</td>
+		<td><input type="text" name="integer_value"/></td>
+	</tr>
+	<tr class="long_value">
+		<td valign="top">Value:</td>
+		<td><input type="text" name="long_value"/></td>
+	</tr>	
 	<tr class="double_value">
 		<td valign="top">Value:</td>
 		<td><input type="text" name="double_value"/></td>

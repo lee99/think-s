@@ -24,9 +24,16 @@ class DbController extends BaseController {
 		if (isset($ret["sizeOnDisk"])) {
 			$ret["diskSize"] = $this->_formatBytes($ret["sizeOnDisk"]);
 		}
-		$ret["dataSize"] = $this->_formatBytes($ret["dataSize"]);
-		$ret["storageSize"] = $this->_formatBytes($ret["storageSize"]);
-		$ret["indexSize"] = $this->_formatBytes($ret["indexSize"]);
+		if(isset($ret["dataSize"])) {
+			$ret["dataSize"] = $this->_formatBytes($ret["dataSize"]);
+		}
+		if(isset($ret["storageSize"])) {
+			$ret["storageSize"] = $this->_formatBytes($ret["storageSize"]);
+		}
+		if(isset($ret["indexSize"])) {
+			$ret["indexSize"] = $this->_formatBytes($ret["indexSize"]);
+		}
+
 		
 		$this->stats = array();
 		$this->stats["Size"] = $ret["diskSize"];
@@ -43,12 +50,24 @@ class DbController extends BaseController {
 					. $this->path("collection.index", array( "db" => $this->db, "collection" => $collection->getName())) . "\">" . $collection->getName() . "</a>";
 			}
 		}
-		$this->stats["Objects"] = $ret["objects"];
-		$this->stats["Data Size"] = $ret["dataSize"];
-		$this->stats["Storage Size"] = $ret["storageSize"];
-		$this->stats["Extents"] = $ret["numExtents"];
-		$this->stats["Indexes"] = $ret["indexes"];
-		$this->stats["Index Size"] = $ret["indexSize"];
+		if(isset($ret["objects"])) {
+			$this->stats["Objects"] = $ret["objects"];
+		}
+		if(isset($ret["dataSize"])) {
+			$this->stats["Data Size"] = $ret["dataSize"];
+		}
+		if(isset($ret["storageSize"])) {
+			$this->stats["Storage Size"] = $ret["storageSize"];
+		}
+		if(isset($ret["numEvents"])) {
+			$this->stats["Extents"] = $ret["numExtents"];
+		}
+		if(isset($ret["indexes"])) {
+			$this->stats["Indexes"] = $ret["indexes"];
+		}
+		if(isset($ret["indexSize"])) { 
+			$this->stats["Index Size"] = $ret["indexSize"];
+		}
 
 		$this->display();
 	}
@@ -100,10 +119,18 @@ class DbController extends BaseController {
 			}**/
 			
 			//start to transfer
-			$targetConnection = new Mongo("mongodb://" . $this->target_host . ":" . $this->target_port);
+			$targetOptions = array();
+			if ($this->target_auth) {
+				$targetOptions["username"] = $this->target_username;
+				$targetOptions["password"] = $this->target_password;
+			}
+			$targetConnection = new RMongo("mongodb://" . $this->target_host . ":" . $this->target_port, $targetOptions);
 			$targetDb = $targetConnection->selectDB($this->db);
 			if ($this->target_auth) {
-				$targetDb->authenticate($this->target_username, $this->target_password);
+				// "authenticate" can only be used between 1.0.1 - 1.2.11
+				if (RMongo::compareVersion("1.0.1") >= 0 && RMongo::compareVersion("1.2.11") < 0) {
+					$targetDb->authenticate($this->target_username, $this->target_password);
+				}
 			}
 			$errors = array();
 			foreach ($this->selectedCollections as $collectionName) {
@@ -179,22 +206,21 @@ class DbController extends BaseController {
 				}
 				unset($cursor);
 			}
-			
 			if (x("can_download")) {
-				$prefix = "rockmongo-export-" . urlencode($this->db) . "-" . time();
-				
+				$prefix = "mongo-" . urlencode($this->db) . "-" . date("Ymd-His");
+			
 				//gzip
 				if (x("gzip")) {
 					ob_end_clean();
 					header("Content-type: application/x-gzip");
-					header("Content-Disposition: attachment; filename=\"{$prefix}.gz\")"); 
+					header("Content-Disposition: attachment; filename=\"{$prefix}.gz\""); 
 					echo gzcompress($this->contents, 9);
 					exit();
 				}
 				else {
 					ob_end_clean();
 					header("Content-type: application/octet-stream");
-					header("Content-Disposition: attachment; filename=\"{$prefix}.js\")");
+					header("Content-Disposition: attachment; filename=\"{$prefix}.js\"");
 					echo $this->contents;
 					exit();
 				}
@@ -209,23 +235,64 @@ class DbController extends BaseController {
 		$this->db = xn("db");
 		
 		if ($this->isPost()) {
+			$format = x("format");
 			if (!empty($_FILES["json"]["tmp_name"])) {
 				$tmp = $_FILES["json"]["tmp_name"];
 				
 				//read file by it's format
 				$body = "";
-				if (preg_match("/\.gz$/", $_FILES["json"]["name"])) {
+				if (preg_match("/\\.gz$/", $_FILES["json"]["name"])) {
 					$body = gzuncompress(file_get_contents($tmp));
 				}
 				else {
 					$body = file_get_contents($tmp);
 				}
 				
-				$ret = $this->_mongo->selectDB($this->db)->execute('function (){ ' . $body . ' }');
-				$this->message = "All data import successfully.";
+				//check format
+				
+				$ret = array("ok" => 0);
+				if ($format == "js") {
+					$ret = $this->_mongo->selectDB($this->db)->execute('function (){ ' . $body . ' }');
+					
+					if (!$ret["ok"]) {
+						$this->error = $ret["errmsg"];
+					}
+					else {
+						$this->message = "All data import successfully.";
+					}
+				}
+				else {
+					$collection = trim(xn("collection"));
+					if ($collection === "") {
+						$this->error2 = "Please enter the collection name";
+					}
+					else {
+						$lines = explode("\n", $body);
+						foreach ($lines as $line) {
+							$line = trim($line);
+							if ($line) {
+								$ret = $this->_mongo->selectDB($this->db)->execute('function (c, o){ o=eval("(" + o + ")"); db.getCollection(c).insert(o); }', array( $collection, $line ));
+							}
+						}
+						
+						
+						if (!$ret["ok"]) {
+							$this->error2 = $ret["errmsg"];
+						}
+						else {
+							$this->message2 = "All data import successfully.";
+						}
+					}
+				}
+				
 			}
 			else {
-				$this->error = "Either no file input or file is too large to upload.";
+				if ($format == "js") {
+					$this->error = "Either no file input or file is too large to upload.";
+				}
+				else {
+					$this->error2 = "Either no file input or file is too large to upload.";
+				}
 			}
 		}
 		
@@ -361,13 +428,13 @@ class DbController extends BaseController {
 	/** create new collection **/
 	public function doNewCollection() {
 		$this->db = xn("db");
-		$this->name = x("name");
+		$this->name = trim(xn("name"));
 		$this->isCapped = xi("is_capped");
 		$this->size = xi("size");
 		$this->max = xi("max");
 		
 		if ($this->isPost()) {
-			$db = new MongoDB($this->_mongo, $this->db);
+			$db = $this->_mongo->selectDB($this->db);
 			$db->createCollection($this->name, $this->isCapped, $this->size, $this->max);
 			$this->message = "New collection is created.";
 			

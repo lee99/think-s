@@ -288,9 +288,6 @@ Func _SvnUp3()
 	SvnUp("Extend")
 EndFunc   ;==>_SvnUp3
 
-Func _SvnUp4()
-	SvnUp("Extend")
-EndFunc   ;==>_SvnUp4
 
 
 Func _SvnUp0()
@@ -320,6 +317,7 @@ EndFunc   ;==>_about
 ;;以SVN更新
 Func SvnUp($target)
 	;Local $target="Examples"
+	DllCall('imm32.dll', 'int', 'ImmDisableIME', 'DWORD', 0)
 	Local $base_dir = @ScriptDir & "\THINKPHP";
 	Local $target_dir = $base_dir & "\" & $target & "";
 	;If MsgBox(36, "程序更新", "点击[是]开始使用SVN更新程序.点击[否]取消更新") = 6 Then
@@ -334,8 +332,15 @@ Func SvnUp($target)
 		Run("cmd.exe /k title SVN 更新中... ")
 		Local $hWnd = WinWait("[CLASS:ConsoleWindowClass]", "", 0)
 		Send('cd{SPACE}' & $base_dir & '{ENTER}')
-		Send(@ScriptDir & "\SERVER\SVN\svn.exe {SPACE} checkout {SPACE} https://thinkphp.googlecode.com/svn/trunk/" & $target & "/{ENTER};exit{ENTER}")
-		;Send('exit{ENTER}')
+		
+		Local $svnurl
+		If $target=='ThinkPHP' Then $svnurl='https://github.com/liu21st/thinkphp/trunk/ThinkPHP' EndIf
+		If $target=='Extend' Then $svnurl='https://github.com/liu21st/extend/trunk/Extend' EndIf
+		If $target=='Examples' Then $svnurl='https://github.com/liu21st/examples/trunk/Examples' EndIf
+	
+		Send(@ScriptDir & "\SERVER\SVN\svn.exe {SPACE} checkout {SPACE} " & $svnurl & "/{ENTER};exit{ENTER}")
+		
+		;Send(@ScriptDir & "\SERVER\SVN\svn.exe {SPACE} checkout {SPACE} https://thinkphp.googlecode.com/svn/trunk/" & $target & "/{ENTER};exit{ENTER}")
 		MsgBox(4096, "提示", "更新操作已经完成！Think-S自动退出。")
 	EndIf
 	;EndIf

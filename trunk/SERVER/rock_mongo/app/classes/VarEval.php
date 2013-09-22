@@ -68,7 +68,9 @@ class VarEval {
 							T_CONSTANT_ENCAPSED_STRING, 
 							T_DOUBLE_ARROW, 
 							T_CLOSE_TAG,
-							T_NEW))) {
+							T_NEW,
+							T_DOUBLE_COLON
+							))) {
 						continue;
 					}
 					
@@ -89,7 +91,8 @@ class VarEval {
 								"mongotimestamp",
 								"true",
 								"false",
-								"null"
+								"null",
+								"__set_state"
 							))) {
 							continue;
 						}
@@ -102,7 +105,7 @@ class VarEval {
 	}
 	
 	private function _runJson() {
-		$timezone = date_default_timezone_get();
+		$timezone = @date_default_timezone_get();
 		date_default_timezone_set("UTC");
 		$ret = $this->_db->execute('function () {
 			if (typeof(ISODate) == "undefined") {

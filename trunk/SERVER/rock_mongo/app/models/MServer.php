@@ -1,5 +1,7 @@
 <?php
 
+import("lib.mongo.RMongo");
+
 class MServer {
 	private $_mongoName = null;
 	private $_mongoHost = "127.0.0.1";
@@ -7,8 +9,9 @@ class MServer {
 	private $_mongoUser = "";
 	private $_mongoPass = "";
 	private $_mongoAuth = false;
-	private $_mongoTimeout = 30;
+	private $_mongoTimeout = 0;
 	private $_mongoDb;
+	private $_mongoOptions = array();
 	private $_controlAuth = true;
 	private $_controlUsers = array();
 	private $_uiDefaultDb;//not be used yet
@@ -28,7 +31,7 @@ class MServer {
 	/**
 	 * Mongo connection object
 	 * 
-	 * @var Mongo
+	 * @var RMongo
 	 */
 	private $_mongo;
 	
@@ -58,6 +61,9 @@ class MServer {
 					break;
 				case "mongo_db":
 					$this->_mongoDb = $value;
+					break;
+				case "mongo_options":
+					$this->_mongoOptions = $value;
 					break;
 				case "control_auth":
 					$this->_controlAuth = $value;
@@ -227,18 +233,44 @@ class MServer {
 				$db = "admin";
 			}
 		}
-		$this->_mongo = new Mongo($this->_mongoHost . ":" . $this->_mongoPort);
+		$server = $this->_mongoHost . ":" . $this->_mongoPort;
+		if (!$this->_mongoPort) {
+			$server = $this->_mongoHost;
+		}
+		try {
+			$options = $this->_mongoOptions;
+			if ($this->_mongoAuth) {
+				$options["username"] = $username;
+				$options["password"] = $password;
+				$options["db"] = $db;
+			}
+			$this->_mongo = new RMongo($server, $options);
+			$this->_mongo->setSlaveOkay(true);
+		}
+		catch(Exception $e) {
+			if (preg_match("/authenticate/i", $e->getMessage())) {
+				return false;
+			}
+			echo "Unable to connect MongoDB, please check your configurations. MongoDB said:" . $e->getMessage() . ".";
+			exit();
+		}
+		
+		// changing timeout to the new value
+		MongoCursor::$timeout = $this->_mongoTimeout;
 		
 		//auth by mongo
 		if ($this->_mongoAuth) {
-			$dbs = $db;
-			if (!is_array($dbs)) {
-				$dbs = preg_split("/\\s*,\\s*/", $dbs);
-			}
-			foreach ($dbs as $db) {
-				$ret = $this->_mongo->selectDb($db)->authenticate($username, $password);
-				if (!$ret["ok"]) {
-					return false;
+			// "authenticate" can only be used between 1.0.1 - 1.2.11
+			if (RMongo::compareVersion("1.0.1") >= 0 && RMongo::compareVersion("1.2.11") < 0) {
+				$dbs = $db;
+				if (!is_array($dbs)) {
+					$dbs = preg_split("/\\s*,\\s*/", $dbs);
+				}
+				foreach ($dbs as $db) {
+					$ret = $this->_mongo->selectDb($db)->authenticate($username, $password);
+					if (!$ret["ok"]) {
+						return false;
+					}
 				}
 			}
 		}
@@ -250,17 +282,23 @@ class MServer {
 			
 			//authenticate
 			if (!empty($this->_mongoUser)) {
-				return $this->_mongo
-					->selectDB($db)
-					->authenticate($this->_mongoUser, $this->_mongoPass);
+				// "authenticate" can only be used between 1.0.1 - 1.2.11
+				if (RMongo::compareVersion("1.0.1") >= 0 && RMongo::compareVersion("1.2.11") < 0) {
+					return $this->_mongo
+						->selectDB($db)
+						->authenticate($this->_mongoUser, $this->_mongoPass);
+				}
 			}
 		}
 		else {
 			//authenticate
 			if (!empty($this->_mongoUser)) {
-				return $this->_mongo
-					->selectDB($db)
-					->authenticate($this->_mongoUser, $this->_mongoPass);
+				// "authenticate" can only be used between 1.0.1 - 1.2.11
+				if (RMongo::compareVersion("1.0.1") >= 0 && RMongo::compareVersion("1.2.11") < 0) {
+					return $this->_mongo
+						->selectDB($db)
+						->authenticate($this->_mongoUser, $this->_mongoPass);
+				}
 			}
 		}
 		return true;

@@ -91,7 +91,7 @@ class CollectionController extends BaseController {
 		$this->_outputJson(array("code" => 200, "data" => $ret));
 	}
 	
-/** show one collection **/
+	/** show one collection **/
 	public function doIndex() {
 		$this->db = xn("db");
 		$this->collection = xn("collection");
@@ -379,7 +379,7 @@ class CollectionController extends BaseController {
 				$text = fread($fp, $size);
 				fclose($fp);
 				
-				preg_match_all("/(\d+\-\d+\-\d+\s+\d+:\d+:\d+)\n(.+)(={10,})/sU", $text, $match);
+				preg_match_all("/(\\d+\\-\\d+\\-\\d+\\s+\\d+:\\d+:\\d+)\n(.+)(={10,})/sU", $text, $match);
 				
 				foreach ($match[1] as $k => $time) {
 					$eval = new VarEval($match[2][$k]);
@@ -638,7 +638,7 @@ class CollectionController extends BaseController {
 		$this->id = xn("id");
 		$db = $this->_mongo->selectDB($this->db);
 		$prefix = substr($this->collection, 0, strrpos($this->collection, "."));
-		$file = $db->getGridFS()->findOne(array("_id" => rock_real_id($this->id)));
+		$file = $db->getGridFS($prefix)->findOne(array("_id" => rock_real_id($this->id)));
 		$fileinfo = pathinfo($file->getFilename());
 		$extension = strtolower($fileinfo["extension"]);
 		import("lib.mime.types", false);
@@ -678,7 +678,7 @@ window.parent.frames["left"].location.reload();
 	public function doRemoveCollection() {
 		$this->db = x("db");
 		$this->collection = xn("collection");
-		$db = new MongoDB($this->_mongo, $this->db);
+		$db = $this->_mongo->selectDB($this->db);
 		$db->dropCollection($this->collection);
 		$this->display();
 	}
@@ -687,7 +687,7 @@ window.parent.frames["left"].location.reload();
 	public function doCollectionIndexes() {
 		$this->db = x("db");
 		$this->collection = xn("collection");
-		$collection = $this->_mongo->selectCollection(new MongoDB($this->_mongo, $this->db), $this->collection);
+		$collection = $this->_mongo->selectCollection($this->_mongo->selectDB($this->db), $this->collection);
 		$this->indexes = $collection->getIndexInfo();
 		foreach ($this->indexes as $_index => $index) {
 			$index["data"] = $this->_highlight($index["key"], "json");
@@ -701,7 +701,7 @@ window.parent.frames["left"].location.reload();
 		$this->db = x("db");
 		$this->collection = xn("collection");
 		
-		$db = new MongoDB($this->_mongo, $this->db);
+		$db = $this->_mongo->selectDB($this->db);
 		$collection = $this->_mongo->selectCollection($db, $this->collection);
 		$indexes = $collection->getIndexInfo();
 		foreach ($indexes as $index) {
@@ -723,7 +723,7 @@ window.parent.frames["left"].location.reload();
 		$this->collection = xn("collection");
 		$this->nativeFields = MCollection::fields($this->_mongo->selectDB($this->db), $this->collection);
 		if ($this->isPost()) {
-			$db = new MongoDB($this->_mongo, $this->db);
+			$db = $this->_mongo->selectDB($this->db);
 			$collection = $this->_mongo->selectCollection($db, $this->collection);
 			
 			$fields = xn("field");
@@ -779,10 +779,10 @@ window.parent.frames["left"].location.reload();
 		$this->collection = xn("collection");
 		$this->stats = array();
 		
-		$db = new MongoDB($this->_mongo, $this->db);
-		$ret = $db->execute("db.{$this->collection}.stats()");
+		$db = $this->_mongo->selectDB($this->db);
+		$ret = $db->command(array( "collStats" => $this->collection ));
 		if ($ret["ok"]) {
-			$this->stats = $ret["retval"];
+			$this->stats = $ret;
 			foreach ($this->stats as $index => $stat) {
 				if (is_array($stat)) {
 					$this->stats[$index] = $this->_highlight($stat, "json");
@@ -809,7 +809,7 @@ window.parent.frames["left"].location.reload();
 		$this->collection = xn("collection");
 		
 		$db = $this->_mongo->selectDB($this->db);
-		$this->ret = $this->_highlight($db->execute('function (collection){ return db.getCollection(collection).validate(); }', array($this->collection)), "json");
+		$this->ret = $this->_highlight($db->selectCollection($this->collection)->validate(), "json");
 		$this->display();
 	}
 	
@@ -846,7 +846,7 @@ window.parent.frames["left"].location.reload();
  			else {
  				$this->error = "Operation failure";
  			}
-			$this->ret = $this->_highlight($this->ret, "json");
+			$this->ret_json = $this->_highlight($this->ret, "json");
 		}
 		$this->display();
 	}
@@ -856,18 +856,15 @@ window.parent.frames["left"].location.reload();
 		$this->db = xn("db");
 		$this->collection = xn("collection");
 		
-		$ret = $this->_mongo->selectDB($this->db)->execute('function (coll){return db.getCollection(coll).exists();}', array( $this->collection ));
+		$ret = $this->_mongo->selectDB($this->db)->command(array( "collStats" => $this->collection ));
 		
 		if (!$ret["ok"]) {
 			exit("There is something wrong:<font color=\"red\">{$ret['errmsg']}</font>, please refresh the page to try again.");
 		}
-		if (!isset($ret["retval"]["options"])) {
-			$ret["retval"]["options"] = array();
-		}
 		$this->isCapped = 0;
 		$this->size = 0;
 		$this->max = 0;
-		$options = $ret["retval"]["options"];
+		$options = $ret;
 		if (isset($options["capped"])) {
 			$this->isCapped = $options["capped"];
 		}
@@ -877,7 +874,6 @@ window.parent.frames["left"].location.reload();
 		if (isset($options["max"])) {
 			$this->max = $options["max"];
 		}
-		
 		if ($this->isPost()) {
 			$this->isCapped = xi("is_capped");
 			$this->size = xi("size");
@@ -887,7 +883,7 @@ window.parent.frames["left"].location.reload();
 			$bkCollection = $this->collection . "_rockmongo_bk_" . uniqid();
 			$this->ret = $this->_mongo->selectDB($this->db)->execute('function (coll, newname, dropExists) { db.getCollection(coll).renameCollection(newname, dropExists);}', array( $this->collection, $bkCollection, true ));
 			if (!$this->ret["ok"]) {
-				$this->error = "There is something wrong:<font color=\"red\">{$ret['errmsg']}</font>, please refresh the page to try again.";
+				$this->error = "There is something wrong:<font color=\"red\">{$this->ret['errmsg']}</font>, please refresh the page to try again.";
 				$this->display();
 				return;
 			}
@@ -952,7 +948,7 @@ window.parent.frames["left"].location.reload();
 	
 	/** export a collection **/
 	public function doCollectionExport() {
-		$this->redirect("db.dbExport", array( "db" => xn("db"), "collection" => xn("collection") ));
+		$this->redirect("db.dbExport", array( "db" => xn("db"), "collection" => xn("collection"), "can_download" => xn("can_download") ));
 	}
 	
 	/** import a collection **/

@@ -152,7 +152,7 @@ $message["phpmongo"] = "PHP Mongo";
 $message["repstatus"] = "Replication Status";
 $message["me"] = "Me";
 
-$message["repstatus"] = "Repair Database";
+$message["repair_database"] = "Repair Database";
 $message["response_from_server"] = "Response from Server";
 
 $message["dropped_from_database"] = "is dropped from database";
@@ -188,16 +188,16 @@ $message["switch_hosts"] = "Switch Hosts";
 /** About **/
 $message["about_content"] = '<strong class="big">RockMongo</strong> is a MongoDB administration tool, written in PHP 5.
 
-<p>See <a href="http://code.google.com/p/rock-php/wiki/rock_mongo" target="_blank">http://code.google.com/p/rock-php/wiki/rock_mongo</a> for more details.</p>
+<p>See <a href="http://rockmongo.com" target="_blank">http://rockmongo.com</a> for more details.</p>
 
 <p>If you have any questions, please send email to me: <a href="mailto:iwind.liu@gmail.com">iwind.liu@gmail.com</a> .</p>
 
 <p>Documents:<ul>
-<li><a href="http://code.google.com/p/rock-php/wiki/rock_mongo_change_log" target="_blank">Changelog</a></li>
-<li><a href="http://code.google.com/p/rock-php/wiki/configuration" target="_blank">Configuration</a></li>
-<li><a href="http://code.google.com/p/rock-php/wiki/plugin" target="_blank">Plug-in</a></li>
-<li><a href="http://code.google.com/p/rock-php/wiki/FAQ" target="_blank">FAQ</a></li>
-<li><a href="http://code.google.com/p/rock-php/wiki/Donation" target="_blank">Donation<br/><img src="http://www.paypal.com/en_US/i/btn/x-click-but04.gif"/></a></li>
+<li><a href="http://rockmongo.com/wiki/changeLog" target="_blank">Changelog</a></li>
+<li><a href="http://rockmongo.com/wiki/configuration" target="_blank">Configuration</a></li>
+<li><a href="http://rockmongo.com/wiki/plugin" target="_blank">Plug-in</a></li>
+<li><a href="http://rockmongo.com/wiki/faq" target="_blank">FAQ</a></li>
+<li><a href="http://rockmongo.com/donation" target="_blank">Donation<br/><img src="http://www.paypal.com/en_US/i/btn/x-click-but04.gif"/></a></li>
 <li><a href="http://code.google.com/p/rock-php/issues/list" target="_blank">Report an Issue</li>
 </ul></p>
 ';
@@ -205,6 +205,6 @@ $message["about_content"] = '<strong class="big">RockMongo</strong> is a MongoDB
 /** Login **/
 $message["loginandrock"] = "Login and Rock";
 $message["changeconfig"] = "You may change your username and password in config.php.";
-$message["rockmongocredits"] = "Powered by RockMongo v" . (ROCK_MONGO_VERSION) . ", <a href=\"http://code.google.com/p/rock-php/downloads/list\" target=\"_blank\">check out new version here.</a>";
+$message["rockmongocredits"] = "Powered by <a href=\"http://rockmongo.com\" target=\"_blank\">RockMongo</a> v" . (ROCK_MONGO_VERSION) . ", <a href=\"http://rockmongo.com/downloads\" target=\"_blank\">check out new version here.</a> &nbsp; [<a href=\"https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=iwind%2eliu%40gmail%2ecom&lc=US&amount=10&item_name=RockMongo%20Project%20Donation&no_note=0&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHostedGuest\">Donate 10 dollars</a>]";
 
 ?>
